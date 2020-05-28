@@ -23,7 +23,7 @@ const Head = ({metadata, general}) => {
     defaultNS: 'translation'
   });
 
-  let pageTitle = "auspice";
+  let pageTitle = "Broad SARS-CoV-2";
   if (hasExtension("browserTitle")) {
     pageTitle = getExtension("browserTitle");
   }
