@@ -17,7 +17,7 @@ const Title = styled.a`
   font-size: 20px;
   font-weight: 400;
   cursor: pointer;
-  letter-spacing: 1rem;
+  letter-spacing: 0.5rem;
 `;
 const LogoLink = styled.a`
   padding: 5px 5px;
@@ -48,7 +48,7 @@ const renderTitle = (narrativeTitle, width) => {
   }
   return (
     <Title href="/">
-      {"auspice"}
+      {"SARS-CoV-2"}
     </Title>
   );
 };
