@@ -1,7 +1,7 @@
 import React from "react";
 import styled from 'styled-components';
 
-const logoPNG = require("../../images/logo-light.svg");
+const logoPNG = require("../../images/broad-logo-square.svg");
 
 const AuspiceNavBarContainer = styled.div`
   display: flex;
@@ -21,6 +21,7 @@ const Title = styled.a`
 `;
 const LogoLink = styled.a`
   padding: 5px 5px;
+  margin-top:5px;
   width: 50px;
   cursor: pointer;
 `;

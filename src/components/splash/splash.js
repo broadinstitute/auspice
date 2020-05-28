@@ -19,7 +19,7 @@ const ColumnList = styled.ul`
 
 const formatDataset = (requestPath, dispatch, changePage) => {
   return (
-    <li key={requestPath}>
+    <li style={{"list-style-type": "none"}} key={requestPath}>
       <div
         style={{color: "#5097BA", textDecoration: "none", cursor: "pointer", fontWeight: "400", fontSize: "94%"}}
         onClick={() => dispatch(changePage({path: requestPath, push: true}))}
@@ -35,31 +35,33 @@ const SplashContent = ({available, browserDimensions, dispatch, errorMessage, ch
   const Header = () => (
     <>
       <Flex justifyContent="center">
-        <div style={{paddingRight: "40px"}}>
-          <h1 style={{textAlign: "center", marginTop: "20px", marginLeft: "20px", fontSize: "72px", letterSpacing: "4rem"}}>
-            {"auspice"}
-          </h1>
-          <h1 style={{textAlign: "center", marginTop: "0px", fontSize: "29px"}}>
-            {"Interactive Visualisation of Phylogenomic data"}
-          </h1>
-        </div>
         <img
+          style={{marginTop:"-10px"}}
           alt="logo"
-          width="102"
+          height="95"
           src={
-            require("../../images/logo-light.svg") // eslint-disable-line global-require
+            require("../../images/broad-logo-full.svg") // eslint-disable-line global-require
           }
         />
+        <div style={{paddingLeft: "40px"}}>
+          <h1 style={{textAlign: "center", marginTop: "30px", marginLeft: "20px", fontSize: "50px", letterSpacing: "0.8rem"}}>
+            {"SARS-CoV-2"}
+          </h1>
+          <h1 style={{textAlign: "center", marginTop: "0px", fontSize: "29px"}}>
+            {"interactive visualisations"}
+          </h1>
+        </div>
+        
       </Flex>
     </>
   );
 
   const Intro = () => (
     <p style={{maxWidth: 600, marginTop: 0, marginRight: "auto", marginBottom: 20, marginLeft: "auto", textAlign: "center", fontSize: 16, fontWeight: 300, lineHeight: 1.42857143}}>
-      {`
-        Auspice is a locally run interactive viewer for phylogeographic and other datasets.
-        Auspice can be easily turned into an online web-app, such as nextstrain.org & auspice.us
-      `}
+
+        Built using <a href="https://nextstrain.github.io/auspice/">Auspice</a>,
+        a tool from the <a href="http://www.fredhutch.org/">Fred Hutch</a> and the <a href="https://bedford.io/">Bedford Lab</a>.
+
     </p>
   );
 
@@ -83,7 +85,7 @@ const SplashContent = ({available, browserDimensions, dispatch, errorMessage, ch
   const ListAvailable = ({type, data}) => (
     <>
       <div style={{fontSize: "26px"}}>
-        {`Available ${type}:`}
+        {`${type}:`}
       </div>
       {
         data ? (
@@ -114,10 +116,9 @@ const SplashContent = ({available, browserDimensions, dispatch, errorMessage, ch
       <NavBar sidebar={false}/>
       <div className="static container">
         <Header/>
+        <ListAvailable type="Datasets" data={available.datasets}/>
+        <ListAvailable type="Narratives" data={available.narratives}/>
         {errorMessage ? <ErrorMessage/> : <Intro/>}
-        <ListAvailable type="datasets" data={available.datasets}/>
-        <ListAvailable type="narratives" data={available.narratives}/>
-        <Footer/>
       </div>
     </>
   );
