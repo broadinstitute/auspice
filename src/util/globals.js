@@ -1,4 +1,5 @@
-import { scaleLinear, scaleSqrt } from "d3-scale";
+import { sqrt as scaleSqrt } from "d3-scale/src/pow";
+import scaleLinear from "d3-scale/src/linear";
 import { hasExtension, getExtension } from "../util/extensions";
 
 export const colorOptions = {
@@ -203,3 +204,4 @@ export const isValueValid = (value) => {
   // booleans, valid strings & numbers are valid.
   return true;
 };
+export const strainSymbol = Symbol('strain');
