@@ -64,9 +64,9 @@ const loadAndAddHandlers = ({app, handlersArg, datasetDir, narrativeDir}) => {
   app.get("/charon/getDataset", handlers.getDataset);
   app.get("/charon/getNarrative", handlers.getNarrative);
   app.get("/charon*", (req, res) => {
-    res.statusMessage = "Query unhandled -- " + req.originalUrl;
-    utils.warn(res.statusMessage);
-    return res.status(500).end();
+    const errorMessage = "Query unhandled -- " + req.originalUrl;
+    utils.warn(errorMessage);
+    return res.status(500).type("text/plain").send(errorMessage);
   });
 
   return handlersArg ?
@@ -81,7 +81,7 @@ const getAuspiceBuild = () => {
     cwd !== sourceDir &&
     fs.existsSync(path.join(cwd, "index.html")) &&
     fs.existsSync(path.join(cwd, "dist")) &&
-    fs.existsSync(path.join(cwd, "dist", "auspice.bundle.js"))
+    fs.readdirSync(path.join(cwd, "dist")).filter((fn) => fn.match(/^auspice.bundle.[a-z0-9]+.js$/)).length === 1
   ) {
     return {
       message: "Serving the auspice build which exists in this directory.",
@@ -122,8 +122,7 @@ const run = (args) => {
   utils.verbose(`Serving index / favicon etc from  "${auspiceBuild.baseDir}"`);
   utils.verbose(`Serving built javascript from     "${auspiceBuild.distDir}"`);
   app.get("/favicon.png", (req, res) => {res.sendFile(path.join(auspiceBuild.baseDir, "favicon.png"));});
-  app.use("/dist", expressStaticGzip(auspiceBuild.distDir));
-  app.use(express.static(auspiceBuild.distDir));
+  app.use("/dist", expressStaticGzip(auspiceBuild.distDir, {maxAge: '30d'}));
 
   let handlerMsg = "";
   if (args.gh_pages) {
@@ -134,7 +133,7 @@ const run = (args) => {
 
   /* this must be the last "get" handler, else the "*" swallows all other requests */
   app.get("*", (req, res) => {
-    res.sendFile(path.join(auspiceBuild.baseDir, "index.html"));
+    res.sendFile(path.join(auspiceBuild.baseDir, "dist/index.html"), {headers: {"Cache-Control": "no-cache, no-store, must-revalidate"}});
   });
 
   const server = app.listen(app.get('port'), app.get('host'), () => {

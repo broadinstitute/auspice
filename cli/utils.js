@@ -59,22 +59,6 @@ const resolveLocalDirectory = (providedPath, isNarratives) => {
   return localPath;
 };
 
-const fetchJSON = (pathIn) => {
-  const p = fetch(pathIn)
-    .then((res) => {
-      if (res.status !== 200) throw new Error(res.statusText);
-      try {
-        const header = res.headers[Object.getOwnPropertySymbols(res.headers)[0]] || res.headers._headers;
-        verbose(`Got type ${header["content-type"]} with encoding ${header["content-encoding"] || "none"}`);
-      } catch (e) {
-        // potential errors here are inconsequential for the response
-      }
-      return res;
-    })
-    .then((res) => res.json());
-  return p;
-};
-
 const readFilePromise = (fileName) => {
   return new Promise((resolve, reject) => {
     fs.readFile(fileName, 'utf8', (err, data) => {
@@ -109,12 +93,12 @@ const exportIndexDotHtml = ({relative=false}) => {
     return;
   }
   const outputFilePath = path.join(process.cwd(), "index.html");
-  let data = fs.readFileSync(path.resolve(__dirname, "../index.html"), {encoding: "utf8"});
+  let data = fs.readFileSync(path.join(process.cwd(), "dist/index.html"), {encoding: "utf8"});
   verbose(`Writing ${outputFilePath}`);
   if (relative) {
     data = data
       .replace(/\/favicon/g, "favicon")
-      .replace(/\/dist\/bundle.js/, "dist/bundle.js");
+      .replace(/\/dist\/auspice\.bundle\.([0-9a-f]{20})\.js/, "dist/auspice.bundle.$1.js");
   }
   fs.writeFileSync(outputFilePath, data);
 };
@@ -126,7 +110,6 @@ module.exports = {
   error,
   resolveLocalDirectory,
   customOutputPath,
-  fetchJSON,
   readFilePromise,
   exportIndexDotHtml
 };

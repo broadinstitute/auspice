@@ -1,7 +1,7 @@
 /* eslint no-underscore-dangle: off */
 import { select, event as d3event } from "d3-selection";
 import 'd3-transition';
-import { scaleLinear } from "d3-scale";
+import scaleLinear from "d3-scale/src/linear";
 import { axisBottom, axisLeft } from "d3-axis";
 import { format } from "d3-format";
 import { zoom } from "d3-zoom";
@@ -442,14 +442,29 @@ EntropyChart.prototype._addBrush = function _addBrush() {
   this.brushFinished = function brushFinished() {
     this.brushed();
     /* if the brushes were moved by box, click drag, handle, or click, then update zoom coords */
-    if (d3event.sourceEvent instanceof MouseEvent && (!d3event.selection || d3event.sourceEvent.target.id === "d3entropyParent" ||
-        d3event.sourceEvent.target.id === "")) {
+    if (d3event.sourceEvent instanceof MouseEvent) {
+      if (
+        !d3event.selection ||
+        d3event.sourceEvent.target.id === "d3entropyParent" ||
+        d3event.sourceEvent.target.id === ""
+      ) {
+        this.props.dispatch(changeZoom(this.zoomCoordinates));
+      } else if (
+        d3event.sourceEvent.target.id.match(/^prot/) ||
+        d3event.sourceEvent.target.id.match(/^nt/)
+      ) {
+        /* If selected gene or clicked on entropy, hide zoom coords */
+        this.props.dispatch(changeZoom([undefined, undefined]));
+      }
+    } else if (_isZoomEvent(d3event)) {
       this.props.dispatch(changeZoom(this.zoomCoordinates));
-    } else {
-      /* If selected gene or clicked on entropy, hide zoom coords */
-      this.props.dispatch(changeZoom([undefined, undefined]));
     }
   };
+
+  /* ZoomEvent is emitted by d3-zoom when shift/option + mouseWheel on the entropy panel. */
+  function _isZoomEvent(d3Event) {
+    return d3Event && d3Event.sourceEvent && d3Event.sourceEvent.type === 'zoom';
+  }
 
   /* zooms in by modifing the domain of xMain scale */
   this._zoom = function _zoom(start, end) {

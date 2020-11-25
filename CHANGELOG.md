@@ -2,11 +2,135 @@
 title: Changelog
 ---
 
+## version 2.20.1 - 2020/11/19
+
+
+* Small bugfixes and performance improvements relatingo to the features introduced in 2.20.0
+
+## version 2.20.0 - 2020/11/18
+
+See [PR 1200](https://github.com/nextstrain/auspice/pull/1200).
+* Add on-hover tooltips to the sidebar to better convey the functionality available.
+See [PR 1200](https://github.com/nextstrain/auspice/pull/1200).
+* Improve how we space temporal grid lines (phylogeny & frequencies panels).
+See [PR 1229](https://github.com/nextstrain/auspice/pull/1229).
+* Fix a bug in how we detected HTTP status codes.
+See [PR 1226](https://github.com/nextstrain/auspice/pull/1226).
+* Auspice documentation is now switched to the Read The Docs platform, and available at https://docs.nextstrain.org/projects/auspice.
+Redirects have been added for the old GitHub pages site, and can be found in the [redirect-documentation](https://github.com/nextstrain/auspice/tree/redirect-documentation) branch.
+See [PR 1220](https://github.com/nextstrain/auspice/pull/1220).
+
+
+## version 2.19.0 - 2020/10/07
+* The auspice client now makes a request for the root-sequence JSON, which allows colouring of the tree by genotypes where there are no mutations.
+See [PR 1197](https://github.com/nextstrain/auspice/pull/1197).
+* polyfill `Promise` to avoid crashes in old browsers.
+See [PR 1217](https://github.com/nextstrain/auspice/pull/1217).
+
+
+## version 2.18.4 - 2020/09/28
+* (Bugfix) Update dependencies to restore behavior of the leaflet-scroll overlay.
+See [nextstrain.org PR #223](https://github.com/nextstrain/nextstrain.org/issues/223) for context, implemented in [PR 1214](https://github.com/nextstrain/auspice/pull/1214)
+
+## version 2.18.3 - 2020/09/22
+This version reverts the change to URL parsing introduced in 2.18.2 which broke Auspice on Safari (and perhaps other browsers).
+
+## version 2.18.2 - 2020/09/19
+* (Bugfix) Ensure generated SVG ids are escaped correctly. See [PR 1209](https://github.com/nextstrain/auspice/pull/1209).
+* Improve parsing of auspice URLs with colon characters in the pathname. See [PR 1210](https://github.com/nextstrain/auspice/pull/1210).
+
+## version 2.18.1 - 2020/08/07
+* Add between-paragraph padding for text rendering in (non-mobile) narratives. 
+
+## version 2.18.0 - 2020/08/03
+* Parse narratives client side.
+See [PR 1193](https://github.com/nextstrain/auspice/pull/1193) and [PR 1172](https://github.com/nextstrain/auspice/pull/1172).
+This shifts the default client behavior to request a narrative in markdown format and parse it client-side.
+The server still retains the ability to parse narratives server-side and return narratives in JSON format, so there are no breaking changes.
+
+* Narratives can now contain multiple datasets.
+See [PR 1193](https://github.com/nextstrain/auspice/pull/1193), [PR 1176](https://github.com/nextstrain/auspice/pull/1176) and [PR 1164](https://github.com/nextstrain/auspice/pull/1164).
+Narrative slides may now define their own unique datasets, with datasets preemptively fetched and cached to improve performance.
+Invalid datasets will show an error notification and fallback to the dataset defined by the frontmatter of the narrative.
+
+* (Bugfix) Zooming in the entropy panel by using shift/option + mouseWheel now appropriately updates the URL query.
+See [PR 1188](https://github.com/nextstrain/auspice/pull/1188)
+
+* (Bugfix) The animation occuring when zooming the phylogeny is now restored.
+See [PR 1192](https://github.com/nextstrain/auspice/pull/1192)
+
+## version 2.17.4 - 2020/07/21
+* (Bugfix) Improve parsing of narrative files where a regex on a large string (e.g. image encoded as a blob) would hang the server
+
+## version 2.17.3 - 2020/07/14
+* (Bugfix) Allow `auspice view` to serve custom auspice client if one exists.
+See [PR 1182](https://github.com/nextstrain/auspice/pull/1182).
+
+
+## version 2.17.2 - 2020/07/13
+* (Bugfix) Send error messages in the (HTTP) response body, not the status line.
+See [PR 1181](https://github.com/nextstrain/auspice/pull/1181).
+
+
+## version 2.17.1 - 2020/06/25
+* (Bugfix) Metadata from drag-and-drop CSVs now shows up in the color-by menu.
+See [PR 1177](https://github.com/nextstrain/auspice/pull/1177).
+
+## version 2.17.0 - 2020/06/19
+* You can now toggle whether the data in the frequencies panel is normalized.
+See [PR 1158](https://github.com/nextstrain/auspice/pull/1158).
+* You can now set the starting state of the transmissions-line toggle via the JSON or a URL query.
+See [PR 1152](https://github.com/nextstrain/auspice/pull/1152) and [PR 1165](https://github.com/nextstrain/auspice/pull/1129).
+* Improve the caching settings for the auspice server.
+See [PR 1146](https://github.com/nextstrain/auspice/pull/1146).
+* The performance of Auspice is improved when transmission lines are not rendered.
+See [PR 1153](https://github.com/nextstrain/auspice/pull/1153).
+* The "narratives" folder is now part of this repo and contains a number of test narratives.
+See [PR 1170](https://github.com/nextstrain/auspice/pull/1170) for more details.
+* A bug was fixed where narrative slides would sometimes fail to update the tree as expected.
+See [PR 1169](https://github.com/nextstrain/auspice/pull/1169).
+* A bug was fixed where loading a tree zoomed to a clade would prevent zooming out.
+See [PR 1156](https://github.com/nextstrain/auspice/pull/1156).
+* A bug was fixed where numeric branch labels couldn't be used as URL queries.
+See [PR 1157](https://github.com/nextstrain/auspice/pull/1157).
+* The list of allowed nodejs versions was expanded.
+See [PR 1166](https://github.com/nextstrain/auspice/pull/1166).
+
+## version 2.16.0 - 2020/05/29
+
+#### Features
+* Drastically improve how we bundle our JavaScript to improve loading times and allow more stable caching.
+[See PR 1126](https://github.com/nextstrain/auspice/pull/1126) for more.
+* Add a toggle for whether or not to show transmission lines on the map.
+[See PR 1147](https://github.com/nextstrain/auspice/pull/1147) and [PR 1103](https://github.com/nextstrain/auspice/pull/1147) for more.
+* Dynamically adjust deme circle size on the map when filtering. 
+[See PR 1135](https://github.com/nextstrain/auspice/pull/1135) for more.
+* Allow the genomic diversity data (the data behind the entropy panel) to be downloaded as a TSV.
+[See PR 1144](https://github.com/nextstrain/auspice/pull/1144) for more.
+* When running the auspice server incomplete URLs can now be expanded by the server.
+[See PR 1129](https://github.com/nextstrain/auspice/pull/1129) for more.
+
+
+#### Other
+* Temporarily disable integration tests from the GitHub CI. [See PR 1148](https://github.com/nextstrain/auspice/pull/1148) for more.
+* Add a CC-BY license for the downloaded SVG (screenshots) . [See PR 1140](https://github.com/nextstrain/auspice/pull/1140) for more.
+* Improvement in code which decides which footers to show. 
+[See PR 1118](https://github.com/nextstrain/auspice/pull/1118) for more.
+* Documentation improvements -- see [PR 1127](https://github.com/nextstrain/auspice/pull/1127) for more.
+* Fix an error in map positioning in some narrative slides. [See PR 958](https://github.com/nextstrain/auspice/pull/958) for more.
+* Rename test snapshots for Windows support. [See PR 1122](https://github.com/nextstrain/auspice/pull/1122) for more.
+* Certain errors preventing the server from running are now caught & helpful messages printed.
+[See PR 1140](https://github.com/nextstrain/auspice/pull/1112) for more.
+
 ## version 2.15.0 - 2020/05/06
+
+* Render "nice" dates for the frequency graph. [See PR 1096](https://github.com/nextstrain/auspice/pull/1096) for more.
+* Allow SVG in narrative markdown. [See PR 1087](https://github.com/nextstrain/auspice/pull/1087) for more.
+* Arabic translation. [See PR 1107](https://github.com/nextstrain/auspice/pull/1107) for more.
+* CSS fixes. See [PR 1092](https://github.com/nextstrain/auspice/pull/1094) and [PR 1094](https://github.com/nextstrain/auspice/pull/1094) for more.
 
 
 ## version 2.14.0 - 2020/04/24
-
 
 #### Testing
 * Add screenshot integration testing using puppeteer and jest-image-snapshot, and run this through the GitHub CI.
