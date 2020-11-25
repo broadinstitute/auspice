@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { connect } from "react-redux";
 import styled from 'styled-components';
 import { withTranslation } from "react-i18next";
@@ -11,7 +11,9 @@ import { version } from "../../version";
 import { publications } from "../download/downloadModal";
 import { isValueValid } from "../../util/globals";
 import hardCodedFooters from "./footer-descriptions";
-import { parseMarkdown } from "../../util/parseMarkdown";
+import { SimpleFilter } from "../info/filterBadge";
+
+const MarkdownDisplay = lazy(() => import("../markdownDisplay"));
 
 const dot = (
   <span style={{marginLeft: 10, marginRight: 10}}>
@@ -137,19 +139,10 @@ export const getAcknowledgments = (metadata, dispatch) => {
    * Jover. December 2019.
   */
   if (metadata.description) {
-    let cleanDescription;
-    try {
-      cleanDescription = parseMarkdown(metadata.description);
-    } catch (error) {
-      console.error(`Error parsing footer description: ${error}`);
-      cleanDescription = '<p>There was an error parsing the footer description.</p>';
-    }
-
     return (
-      <div
-        className='acknowledgments'
-        dangerouslySetInnerHTML={{ __html: cleanDescription }} // eslint-disable-line react/no-danger
-      />
+      <Suspense fallback={<div />}>
+        <MarkdownDisplay className="acknowledgments" mdstring={metadata.description} />
+      </Suspense>
     );
   }
 
@@ -165,68 +158,21 @@ export const getAcknowledgments = (metadata, dispatch) => {
 };
 
 const dispatchFilter = (dispatch, activeFilters, key, value) => {
-  const mode = activeFilters[key].indexOf(value) === -1 ? "add" : "remove";
+  const activeValuesOfFilter = activeFilters[key].map((f) => f.value);
+  const mode = activeValuesOfFilter.indexOf(value) === -1 ? "add" : "remove";
   dispatch(applyFilter(mode, key, [value]));
 };
 
-export const displayFilterValueAsButton = (dispatch, activeFilters, filterName, itemName, display, showX) => {
-  const active = activeFilters[filterName].indexOf(itemName) !== -1;
-  if (active && showX) {
-    return (
-      <div key={itemName} style={{display: "inline-block"}}>
-        <div
-          className={'boxed-item-icon'}
-          onClick={() => {dispatchFilter(dispatch, activeFilters, filterName, itemName);}}
-          role="button"
-          tabIndex={0}
-        >
-          {'\xD7'}
-        </div>
-        <div className={"boxed-item active-with-icon"}>
-          {display}
-        </div>
-      </div>
-    );
-  }
-  if (active) {
-    return (
-      <div
-        className={"boxed-item active-clickable"}
-        key={itemName}
-        onClick={() => {dispatchFilter(dispatch, activeFilters, filterName, itemName);}}
-        role="button"
-        tabIndex={0}
-      >
-        {display}
-      </div>
-    );
-  }
-  return (
-    <div
-      className={"boxed-item inactive"}
-      key={itemName}
-      onClick={() => {dispatchFilter(dispatch, activeFilters, filterName, itemName);}}
-      role="button"
-      tabIndex={0}
-    >
-      {display}
-    </div>
-  );
-};
+const removeFiltersButton = (dispatch, filterNames, outerClassName, label) => (
+  <SimpleFilter
+    active
+    extraStyles={{float: "right", margin: "0px 4px"}}
+    onClick={() => {filterNames.forEach((n) => dispatch(applyFilter("set", n, [])));}}
+  >
+    {label}
+  </SimpleFilter>
+);
 
-const removeFiltersButton = (dispatch, filterNames, outerClassName, label) => {
-  return (
-    <div
-      className={`${outerClassName} boxed-item active-clickable`}
-      style={{paddingLeft: '5px', paddingRight: '5px', display: "inline-block"}}
-      onClick={() => {
-        filterNames.forEach((n) => dispatch(applyFilter("set", n, [])));
-      }}
-    >
-      {label}
-    </div>
-  );
-};
 
 @connect((state) => {
   return {
@@ -235,7 +181,8 @@ const removeFiltersButton = (dispatch, filterNames, outerClassName, label) => {
     metadata: state.metadata,
     colorOptions: state.metadata.colorOptions,
     browserDimensions: state.browserDimensions.browserDimensions,
-    activeFilters: state.controls.filters
+    activeFilters: state.controls.filters,
+    filtersInFooter: state.controls.filtersInFooter
   };
 })
 class Footer extends React.Component {
@@ -259,6 +206,7 @@ class Footer extends React.Component {
     const { t } = this.props;
     const totalStateCount = this.props.totalStateCounts[filterName];
     const filterTitle = this.props.metadata.colorings[filterName] ? this.props.metadata.colorings[filterName].title : filterName;
+    const activeFilterItems = this.props.activeFilters[filterName].filter((x) => x.active).map((x) => x.value);
     return (
       <div>
         {t("Filter by {{filterTitle}}", {filterTitle: filterTitle})}
@@ -269,14 +217,17 @@ class Footer extends React.Component {
               Array.from(totalStateCount.keys())
                 .filter((itemName) => isValueValid(itemName)) // remove invalid values present across the tree
                 .sort() // filters are sorted alphabetically
-                .map((itemName) => {
-                  const display = (
+                .map((itemName) => (
+                  <SimpleFilter
+                    key={itemName}
+                    active={activeFilterItems.indexOf(itemName) !== -1}
+                    onClick={() => dispatchFilter(this.props.dispatch, this.props.activeFilters, filterName, itemName)}
+                  >
                     <span>
                       {`${itemName} (${totalStateCount.get(itemName)})`}
                     </span>
-                  );
-                  return displayFilterValueAsButton(this.props.dispatch, this.props.activeFilters, filterName, itemName, display, false);
-                })
+                  </SimpleFilter>
+                ))
             }
           </Flex>
         </div>
@@ -323,14 +274,16 @@ class Footer extends React.Component {
           <div className='line'/>
           {getAcknowledgments(this.props.metadata, this.props.dispatch)}
           <div className='line'/>
-          {Object.keys(this.props.activeFilters).map((name) => {
-            return (
-              <div key={name}>
-                {this.displayFilter(name)}
-                <div className='line'/>
-              </div>
-            );
-          })}
+          {Object.keys(this.props.activeFilters)
+            .filter((name) => this.props.filtersInFooter.includes(name))
+            .map((name) => {
+              return (
+                <div key={name}>
+                  {this.displayFilter(name)}
+                  <div className='line'/>
+                </div>
+              );
+            })}
           <Flex className='finePrint'>
             {this.getUpdated()}
             {dot}

@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from 'prop-types';
 import { connect } from "react-redux";
-import Select from "react-select";
+import Select from "react-select/lib/Select";
 import { debounce } from "lodash";
 import { sidebarField } from "../../globalStyles";
 import { controlsWidth, nucleotide_gene } from "../../util/globals";
@@ -116,10 +116,11 @@ class ColorBy extends React.Component {
   /**
    * Avoids double invocation of change() method
    */
-  shouldComponentUpdate(_, nextState) {
+  shouldComponentUpdate(nextProps, nextState) {
     if (this.state.colorBySelected === nextState.colorBySelected &&
         this.state.geneSelected === nextState.geneSelected &&
-        this.state.positionSelected === nextState.positionSelected) {
+        this.state.positionSelected === nextState.positionSelected &&
+        this.props.colorings === nextProps.colorings) {
       return false;
     }
     return true;
@@ -230,5 +231,14 @@ class ColorBy extends React.Component {
     );
   }
 }
+
+export const ColorByInfo = (
+  <>
+    Change the metadata field which the visualisation is coloured by.
+    <br/>
+    The phylogeny, map and frequencies panel (if available) will all be coloured
+    in a consistent fashion.
+  </>
+);
 
 export default ColorBy;

@@ -20,15 +20,15 @@ export const Sidebar = (
           narrativeTitle={displayNarrative ? narrativeTitle : false}
           width={width}
         />
-        {displayNarrative ?
-          <Narrative
-            height={height - narrativeNavBarHeight}
-            width={width}
-          /> :
+        {displayNarrative ? (
+          <Narrative height={height - narrativeNavBarHeight} width={width} />
+        ) : (
           <Controls
+            mobileDisplay={mobileDisplay}
             mapOn={panelsToDisplay.includes("map")}
+            frequenciesOn={panelsToDisplay.includes("frequencies")}
           />
-        }
+        )}
       </SidebarContainer>
     </ThemeProvider>
   );
