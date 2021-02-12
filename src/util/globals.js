@@ -218,7 +218,7 @@ export const getMapTilesSettings = () => {
     return getExtension("mapTiles");
   }
   /* defaults */
-  const api = 'https://api.mapbox.com/styles/v1/broad-viral/ckl2hdlt80kf717n4mswirdul/wmts?access_token=pk.eyJ1IjoiYnJvYWQtdmlyYWwiLCJhIjoiY2tsMmNrdzMwMDg4MjJ1cGttZXZuamZiayJ9.522Kq9FakoBAD72axEcK2A';
+  const api = 'https://api.mapbox.com/styles/v1/broad-viral/ckl2hdlt80kf717n4mswirdul/wmts?access_token=sk.eyJ1IjoiYnJvYWQtdmlyYWwiLCJhIjoiY2tsMmQwcnM1MDdyajJvbnJtYzZ0YzBqNCJ9.xGXkd-RseZ4KppX0locpCA';
   return {
     api,
     attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <a style="font-weight: 700" href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a>',
