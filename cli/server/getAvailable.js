@@ -20,8 +20,8 @@ const getAvailableDatasets = async (localDataPath) => {
       !file.includes("manifest") &&
       !file.endsWith("_tree.json") &&
       !file.endsWith("_meta.json") &&
-      !file.endsWith("_tip-frequencies.json") &&
-      !file.endsWith("_root-sequence.json") &&
+      !file.includes("_tip-frequencies.json") &&
+      !file.includes("_root-sequence.json") &&
       !file.endsWith("_seq.json")
     ));
 
