@@ -81,14 +81,22 @@ const redirectIfDatapathMatchFound = (res, info, availableDatasets) => {
  */
 const makeFetchAddresses = (info, datasetsPath, availableDatasets) => {
   info.isGzipped=false;
+  const requestStr = info.parts.join("/"); // TO DO
+  const availableInfo = availableDatasets.filter((d) => d.request === requestStr)[0];
   if (info.dataType !== "dataset") {
-    info.address = path.join(
-      datasetsPath,
-      `${info.parts.join("_")}_${info.dataType}.json`
-    );
+    if (!availableInfo.isGzipped){
+      info.address = path.join(
+        datasetsPath,
+        `${info.parts.join("_")}_${info.dataType}.json`
+      );
+    } else {
+      info.address = path.join(
+        datasetsPath,
+        `${info.parts.join("_")}_${info.dataType}.json.gz`
+      );
+      info.isGzipped=true;
+    }
   } else {
-    const requestStr = info.parts.join("/"); // TO DO
-    const availableInfo = availableDatasets.filter((d) => d.request === requestStr)[0];
     if (availableInfo.v2) {
       if (!availableInfo.isGzipped){
         info.address = path.join(datasetsPath, `${info.parts.join("_")}.json`);
