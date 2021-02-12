@@ -19,12 +19,11 @@ import {
   updateTransmissionDataLatLong,
   updateDemeDataLatLong
 } from "./mapHelpersLatLong";
-import { changeDateFilter } from "../../actions/tree";
-import { MAP_ANIMATION_PLAY_PAUSE_BUTTON } from "../../actions/types";
 // import { incommingMapPNG } from "../download/helperFunctions";
 import { timerStart, timerEnd } from "../../util/perf";
-import { tabSingle, darkGrey, lightGrey, goColor, pauseColor } from "../../globalStyles";
+import { tabSingle, darkGrey, lightGrey } from "../../globalStyles";
 import ErrorBoundary from "../../util/errorBoundry";
+import { getMapTilesSettings } from "../../util/globals";
 import Legend from "../tree/legend/legend";
 import "../../css/mapbox.css";
 
@@ -46,7 +45,6 @@ import "../../css/mapbox.css";
     colorScaleVersion: state.controls.colorScale.version,
     map: state.map,
     geoResolution: state.controls.geoResolution,
-    animationPlayPauseButton: state.controls.animationPlayPauseButton,
     mapTriplicate: state.controls.mapTriplicate,
     dateMinNumeric: state.controls.dateMinNumeric,
     dateMaxNumeric: state.controls.dateMaxNumeric,
@@ -79,11 +77,10 @@ class Map extends React.Component {
       transmissionData: null,
       demeIndices: null,
       transmissionIndices: null,
-      userHasInteractedWithMap: false
+      userHasInteractedWithMap: false,
+      tilesSettings: getMapTilesSettings()
     };
     // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-bind.md#es6-classes
-    this.playPauseButtonClicked = this.playPauseButtonClicked.bind(this);
-    this.resetButtonClicked = this.resetButtonClicked.bind(this);
     this.fitMapBoundsToData = this.fitMapBoundsToData.bind(this);
   }
 
@@ -436,7 +433,7 @@ class Map extends React.Component {
       );
 
       this.moveMapAccordingToData({
-        geoResolutionChanged: nextProps.geoResolution !== this.props.geoResolution,
+        geoResolutionChanged: false,
         visibilityChanged: nextProps.visibility !== this.props.visibility,
         demeData: newDemes,
         demeIndices: this.state.demeIndices
@@ -493,24 +490,24 @@ class Map extends React.Component {
 
     map.getRenderer(map).options.padding = 2;
 
-    L.tileLayer('https://api.mapbox.com/styles/v1/trvrb/ciu03v244002o2in5hlm3q6w2/tiles/256/{z}/{x}/{y}?access_token=pk.eyJ1IjoidHJ2cmIiLCJhIjoiY2l1MDRoMzg5MDEwbjJvcXBpNnUxMXdwbCJ9.PMqX7vgORuXLXxtI3wISjw', {
-      attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <a style="font-weight: 700" href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a>'
-    }).addTo(map);
+    L.tileLayer(this.state.tilesSettings.api, {attribution: this.state.tilesSettings.attribution || ''})
+      .addTo(map);
 
     if (!this.props.narrativeMode) {
       L.zoomControlButtons = L.control.zoom({position: "bottomright"}).addTo(map);
     }
 
-    const Wordmark = L.Control.extend({
-      onAdd: function onAdd() {
-        const wordmark = L.DomUtil.create('a', 'mapbox-wordmark');
-        wordmark.href = "http://mapbox.com/about/maps";
-        wordmark.target = "_blank";
-        return wordmark;
-      }
-    });
-    (new Wordmark({position: 'bottomleft'})).addTo(map);
-
+    if (this.state.tilesSettings.mapboxWordmark) {
+      const Wordmark = L.Control.extend({
+        onAdd: function onAdd() {
+          const wordmark = L.DomUtil.create('a', 'mapbox-wordmark');
+          wordmark.href = "http://mapbox.com/about/maps";
+          wordmark.target = "_blank";
+          return wordmark;
+        }
+      });
+      (new Wordmark({position: 'bottomleft'})).addTo(map);
+    }
 
     /* Set up leaflet events */
     map.on("moveend", this.respondToLeafletEvent.bind(this));
@@ -523,47 +520,11 @@ class Map extends React.Component {
     this.setState({map});
   }
 
-  animationButtons() {
-    if (this.props.narrativeMode) return null;
-    const buttonBaseStyle = {
-      color: "#FFFFFF",
-      fontWeight: 400,
-      fontSize: 12,
-      borderRadius: 3,
-      padding: 12,
-      border: "none",
-      zIndex: 900,
-      position: "relative",
-      textTransform: "uppercase"
-    };
-    if (this.props.branchLengthsToDisplay !== "divOnly") {
-      return (
-        <div style={{position: "absolute"}}>
-          <button
-            style={{...buttonBaseStyle, top: 20, left: 20, backgroundColor: this.props.animationPlayPauseButton === "Pause" ? pauseColor : goColor}}
-            onClick={this.playPauseButtonClicked}
-          >
-            {this.props.t(this.props.animationPlayPauseButton)}
-          </button>
-          <button
-            style={{...buttonBaseStyle, top: 20, left: 30, backgroundColor: lightGrey}}
-            onClick={this.resetButtonClicked}
-          >
-            {this.props.t("Reset")}
-          </button>
-        </div>
-      );
-    }
-    /* else - divOnly */
-    return (<div/>);
-  }
-
   maybeCreateMapDiv() {
     let container = null;
     if (this.state.responsive) {
       container = (
         <div style={{position: "relative"}}>
-          {this.animationButtons()}
           <div
             onClick={() => {this.setState({userHasInteractedWithMap: true});}}
             id="map"
@@ -577,28 +538,12 @@ class Map extends React.Component {
     }
     return container;
   }
-  playPauseButtonClicked() {
-    if (this.props.animationPlayPauseButton === "Play") {
-      this.props.dispatch({type: MAP_ANIMATION_PLAY_PAUSE_BUTTON, data: "Pause"});
-    } else {
-      this.props.dispatch({type: MAP_ANIMATION_PLAY_PAUSE_BUTTON, data: "Play"});
-    }
-  }
-  resetButtonClicked() {
-    this.props.dispatch({type: MAP_ANIMATION_PLAY_PAUSE_BUTTON, data: "Play"});
-    this.props.dispatch(changeDateFilter({newMin: this.props.absoluteDateMin, newMax: this.props.absoluteDateMax, quickdraw: false}));
-  }
   moveMapAccordingToData({geoResolutionChanged, visibilityChanged, demeData, demeIndices}) {
     /* Given d3 data (may not be drawn) we can compute map bounds & move as appropriate */
     if (!this.state.boundsSet) {
       /* we are doing the initial render -> set map to the range of the data in view */
       /* P.S. This is how upon initial loading the map zooms into the data */
       this.fitMapBoundsToData(demeData, demeIndices);
-      return;
-    }
-
-    /* if we're animating, then we don't want to move the map all the time */
-    if (this.props.animationPlayPauseButton === "Pause") {
       return;
     }
 

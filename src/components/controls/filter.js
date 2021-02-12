@@ -1,8 +1,11 @@
 import React from "react";
 import { connect } from "react-redux";
-import Async from "react-select/lib/Async";
+import "react-select/dist/react-select.css";
+import "react-virtualized-select/styles.css";
+import Select from "react-virtualized-select";
 import { debounce } from 'lodash';
-import { controlsWidth, isValueValid, strainSymbol} from "../../util/globals";
+import { controlsWidth, isValueValid, strainSymbol, genotypeSymbol} from "../../util/globals";
+import { collectGenotypeStates } from "../../util/treeMiscHelpers";
 import { applyFilter } from "../../actions/tree";
 import { FilterBadge } from "../info/filterBadge";
 import { SidebarSubtitle } from "./styles";
@@ -57,6 +60,13 @@ class FilterData extends React.Component {
             });
           });
       });
+    if (genotypeSymbol in this.props.activeFilters) {
+      const sortedGenotypes = [...collectGenotypeStates(this.props.nodes)].sort();
+      options.push(...sortedGenotypes.map((o) => ({
+        label: `genotype ${o}`,
+        value: [genotypeSymbol, o]
+      })));
+    }
     if (strainSymbol in this.props.activeFilters) {
       this.props.nodes
         .filter((n) => !n.hasChildren)
@@ -79,7 +89,7 @@ class FilterData extends React.Component {
       const n = this.props.activeFilters[filterName].filter((f) => f.active).length;
       return {
         filterName,
-        displayName: `${n} x ${filterName===strainSymbol ? "samples" : filterName}`,
+        displayName: filterBadgeDisplayName(n, filterName),
         remove: () => {this.props.dispatch(applyFilter("set", filterName, []));}
       };
     });
@@ -91,9 +101,13 @@ class FilterData extends React.Component {
     const loadOptions = debounce((input, callback) => callback(null, {options}), DEBOUNCE_TIME);
     const styles = this.getStyles();
     const inUseFilters = this.summariseFilters();
+    /* When filter categories were dynamically created (via metadata drag&drop) the `options` here updated but `<Async>`
+    seemed to use a cached version of all values & wouldn't update. Changing the key forces a rerender, but it's not ideal */
+    const divKey = String(Object.keys(this.props.activeFilters).length);
     return (
-      <div style={styles.base}>
-        <Async
+      <div style={styles.base} key={divKey}>
+        <Select
+          async
           name="filterQueryBox"
           placeholder="Type filter query here..."
           value={undefined}
@@ -113,7 +127,12 @@ class FilterData extends React.Component {
             </SidebarSubtitle>
             {inUseFilters.map((filter) => (
               <div style={{display: 'inline-block', margin: '2px'}} key={filter.displayName}>
-                <FilterBadge active id={filter.displayName} remove={filter.remove}>
+                <FilterBadge
+                  active
+                  id={filter.displayName}
+                  remove={filter.remove}
+                  onHoverMessage={`Data is currently filtered by ${filter.displayName}`}
+                >
                   {filter.displayName}
                 </FilterBadge>
               </div>
@@ -139,3 +158,9 @@ export const FilterInfo = (
 );
 
 export default FilterData;
+
+function filterBadgeDisplayName(n, filterName) {
+  if (filterName===strainSymbol) return `${n} x samples`;
+  if (filterName===genotypeSymbol) return `${n} x genotypes`;
+  return `${n} x  ${filterName}`;
+}
