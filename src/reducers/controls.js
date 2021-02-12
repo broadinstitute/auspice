@@ -6,6 +6,7 @@ import { defaultGeoResolution,
   defaultLayout,
   defaultMutType,
   controlsHiddenWidth,
+  strainSymbol,
   twoColumnBreakpoint } from "../util/globals";
 import * as types from "../actions/types";
 import { calcBrowserDimensionsInitialState } from "./browserDimensions";
@@ -74,6 +75,7 @@ export const getDefaultControlsState = () => {
     panelsAvailable: [],
     panelsToDisplay: [],
     panelLayout: calcBrowserDimensionsInitialState().width > twoColumnBreakpoint ? "grid" : "full",
+    tipLabelKey: strainSymbol,
     showTreeToo: undefined,
     showTangle: false,
     zoomMin: undefined,
@@ -157,7 +159,8 @@ const Controls = (state = getDefaultControlsState(), action) => {
         newDates.dateMax = action.dateMax;
         newDates.dateMaxNumeric = action.dateMaxNumeric;
       }
-      return Object.assign({}, state, newDates);
+      const colorScale = {...state.colorScale, visibleLegendValues: action.visibleLegendValues};
+      return {...state, ...newDates, colorScale};
     }
     case types.CHANGE_ABSOLUTE_DATE_MIN:
       return Object.assign({}, state, {
@@ -194,6 +197,8 @@ const Controls = (state = getDefaultControlsState(), action) => {
       return Object.assign({}, state, {
         panelLayout: action.data
       });
+    case types.CHANGE_TIP_LABEL_KEY:
+      return {...state, tipLabelKey: action.key};
     case types.TREE_TOO_DATA:
       return action.controls;
     case types.TOGGLE_PANEL_DISPLAY:
@@ -258,11 +263,25 @@ const Controls = (state = getDefaultControlsState(), action) => {
       return Object.assign({}, state, { sidebarOpen: action.value });
     case types.TOGGLE_LEGEND:
       return Object.assign({}, state, { legendOpen: action.value });
-    case types.ADD_COLOR_BYS:
+    case types.ADD_EXTRA_METADATA:
       for (const colorBy of Object.keys(action.newColorings)) {
+        state.filters[colorBy] = [];
         state.coloringsPresentOnTree.add(colorBy);
       }
-      return Object.assign({}, state, { coloringsPresentOnTree: state.coloringsPresentOnTree });
+      let newState = Object.assign({}, state, { coloringsPresentOnTree: state.coloringsPresentOnTree, filters: state.filters });
+      if (action.newGeoResolution && !state.panelsAvailable.includes("map")) {
+        newState = {
+          ...newState,
+          geoResolution: action.newGeoResolution.key,
+          canTogglePanelLayout: true,
+          panelsAvailable: [...state.panelsAvailable, "map"],
+          panelsToDisplay: [...state.panelsToDisplay, "map"]
+        };
+      }
+      return newState;
+    case types.UPDATE_VISIBILITY_AND_BRANCH_THICKNESS:
+      const colorScale = Object.assign({}, state.colorScale, { visibleLegendValues: action.visibleLegendValues });
+      return Object.assign({}, state, { colorScale: colorScale });
     case types.TOGGLE_TRANSMISSION_LINES:
       return Object.assign({}, state, { showTransmissionLines: action.data });
 
@@ -280,11 +299,6 @@ const Controls = (state = getDefaultControlsState(), action) => {
 export default Controls;
 
 function getInitialSidebarState() {
-  /* The following "hack" was present when `sidebarOpen` wasn't URL customisable. It can be removed
-  from here once the GISAID URLs (iFrames) are updated */
-  if (window.location.pathname.includes("gisaid")) {
-    return {sidebarOpen: false, setDefault: true};
-  }
   return {
     sidebarOpen: window.innerWidth > controlsHiddenWidth,
     setDefault: false

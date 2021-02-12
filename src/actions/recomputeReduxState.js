@@ -1,7 +1,7 @@
 import queryString from "query-string";
 import { cloneDeep } from 'lodash';
 import { numericToCalendar, calendarToNumeric } from "../util/dateHelpers";
-import { reallySmallNumber, twoColumnBreakpoint, defaultColorBy, defaultGeoResolution, defaultDateRange, nucleotide_gene, strainSymbol } from "../util/globals";
+import { reallySmallNumber, twoColumnBreakpoint, defaultColorBy, defaultGeoResolution, defaultDateRange, nucleotide_gene, strainSymbol, genotypeSymbol } from "../util/globals";
 import { calcBrowserDimensionsInitialState } from "../reducers/browserDimensions";
 import { getIdxMatchingLabel, calculateVisiblityAndBranchThickness } from "../util/treeVisibilityHelpers";
 import { constructVisibleTipLookupBetweenTrees } from "../util/treeTangleHelpers";
@@ -11,12 +11,12 @@ import { calcEntropyInView } from "../util/entropy";
 import { treeJsonToState } from "../util/treeJsonProcessing";
 import { entropyCreateState } from "../util/entropyCreateStateFromJsons";
 import { determineColorByGenotypeMutType, calcNodeColor } from "../util/colorHelpers";
-import { calcColorScale } from "../util/colorScale";
+import { calcColorScale, createVisibleLegendValues } from "../util/colorScale";
 import { computeMatrixFromRawData } from "../util/processFrequencies";
 import { applyInViewNodesToTree } from "../actions/tree";
-import { isColorByGenotype, decodeColorByGenotype } from "../util/getGenotype";
-import { getTraitFromNode, getDivFromNode } from "../util/treeMiscHelpers";
-
+import { isColorByGenotype, decodeColorByGenotype, decodeGenotypeFilters, encodeGenotypeFilters } from "../util/getGenotype";
+import { getTraitFromNode, getDivFromNode, collectGenotypeStates } from "../util/treeMiscHelpers";
+import { collectAvailableTipLabelOptions } from "../components/controls/choose-tip-label";
 
 export const doesColorByHaveConfidence = (controlsState, colorBy) =>
   controlsState.coloringsPresentOnTreeWithConfidence.has(colorBy);
@@ -71,6 +71,9 @@ const modifyStateViaURLQuery = (state, query) => {
   if (query.p && state.canTogglePanelLayout && (query.p === "full" || query.p === "grid")) {
     state["panelLayout"] = query.p;
   }
+  if (query.tl) {
+    state["tipLabelKey"] = query.tl;
+  }
   if (query.d) {
     const proposed = query.d.split(",");
     state.panelsToDisplay = state.panelsAvailable.filter((n) => proposed.indexOf(n) !== -1);
@@ -92,6 +95,9 @@ const modifyStateViaURLQuery = (state, query) => {
   }
   if (query.s) {   // selected strains are a filter too
     state.filters[strainSymbol] = query.s.split(',').map((value) => ({value, active: true}));
+  }
+  if (query.gt) {
+    state.filters[genotypeSymbol] = decodeGenotypeFilters(query.gt);
   }
   if (query.animate) {
     const params = query.animate.split(',');
@@ -169,6 +175,7 @@ const restoreQueryableStateToDefaults = (state) => {
 
   state["panelLayout"] = calcBrowserDimensionsInitialState().width > twoColumnBreakpoint ? "grid" : "full";
   state.panelsToDisplay = state.panelsAvailable.slice();
+  state.tipLabelKey = strainSymbol;
   // console.log("state now", state);
   return state;
 };
@@ -206,6 +213,7 @@ const modifyStateViaMetadata = (state, metadata) => {
     console.warn("JSON did not include any filters");
   }
   state.filters[strainSymbol] = [];
+  state.filters[genotypeSymbol] = []; // this doesn't necessitate that mutations are defined
   if (metadata.displayDefaults) {
     const keysToCheckFor = ["geoResolution", "colorBy", "distanceMeasure", "layout", "mapTriplicate", "selectedBranchLabel", 'sidebar', "showTransmissionLines", "normalizeFrequencies"];
     const expectedTypes =  ["string",        "string",  "string",          "string", "boolean",       "string",              'string',  "boolean"              , "boolean"]; // eslint-disable-line
@@ -478,6 +486,12 @@ const checkAndCorrectErrorsInState = (state, metadata, query, tree, viewingNarra
     state.defaults.selectedBranchLabel = "none";
   }
 
+  /* check tip label is valid. We use the function which generates the options for the dropdown here */
+  if (!collectAvailableTipLabelOptions(metadata.colorings).map((o) => o.value).includes(state.tipLabelKey)) {
+    console.error("Can't set selected tip label to ", state.tipLabelKey);
+    state.tipLabelKey = strainSymbol;
+  }
+
   /* temporalConfidence */
   if (shouldDisplayTemporalConfidence(state.temporalConfidence.exists, state.distanceMeasure, state.layout)) {
     state.temporalConfidence.display = true;
@@ -514,6 +528,12 @@ const checkAndCorrectErrorsInState = (state, metadata, query, tree, viewingNarra
       .filter((strainFilter) => validNames.includes(strainFilter.value));
     query.s = state.filters[strainSymbol].map((f) => f.value).join(",");
     if (!query.s) delete query.s;
+  }
+  if (state.filters[genotypeSymbol]) {
+    const observedMutations = collectGenotypeStates(tree.nodes);
+    state.filters[genotypeSymbol] = state.filters[genotypeSymbol]
+      .filter((f) => observedMutations.has(f.value));
+    query.gt = encodeGenotypeFilters(state.filters[genotypeSymbol]);
   }
 
   /* can we display branch length by div or num_date? */
@@ -783,6 +803,18 @@ export const createStateFromQueryOrJSONs = ({
     controls = modifyControlsViaTreeToo(controls, treeToo.name);
     treeToo.tangleTipLookup = constructVisibleTipLookupBetweenTrees(tree.nodes, treeToo.nodes, tree.visibility, treeToo.visibility);
   }
+
+  /* we can only calculate which legend items we wish to display _after_ the visibility has been calculated */
+  controls.colorScale.visibleLegendValues = createVisibleLegendValues({
+    colorBy: controls.colorBy,
+    scaleType: controls.colorScale.scaleType,
+    genotype: controls.colorScale.genotype,
+    legendValues: controls.colorScale.legendValues,
+    treeNodes: tree.nodes,
+    treeTooNodes: treeToo ? treeToo.nodes : undefined,
+    visibility: tree.visibility,
+    visibilityToo: treeToo ? treeToo.visibilityToo : undefined
+  });
 
   /* calculate entropy in view */
   if (entropy.loaded) {

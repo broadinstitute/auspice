@@ -2,10 +2,68 @@
 title: Changelog
 ---
 
+## version 2.23.0 - 2021/01/28
+* [feature] Implement genotype filtering.
+The sidebar, typing-based filter UI now includes genotypes (for datasets which define mutations on branches).
+See [PR 1265](https://github.com/nextstrain/auspice/pull/1265) for more.
+* [bugfix] Update how we generate the bundle hashes as the fix introduced in v2.22.2 was insufficient.
+See [PR 1272](https://github.com/nextstrain/auspice/pull/1272) for more.
+
+## version 2.22.2 - 2021/01/14
+* [bugfix] Updated how we generate hashes for the transpiled, chunked client bundles.
+This prevents subtle bugs where bundles could have the same hash, but different contents, and thus stale (browser cached) chunks may be used in certain situations.
+This bug most probably arose in v2.22.0, so please update to this version if possible!
+See [PR 1263](https://github.com/nextstrain/auspice/pull/1263) for more.
+
+## version 2.22.1 - 2021/01/13
+* Updated package-lock JSON file
+
+## version 2.22.0 - 2021/01/11
+
+* The address Auspice uses to fetch map tiles, including the API token, has been updated and will now only work for local installs of auspice.
+For help on how to specify your own address, which lets you specify custom map tile sets, see [the Auspice docs](https://docs.nextstrain.org/projects/auspice/en/stable/customise-client/api.html#specifying-the-api-server-address).
+See [PR 1261](https://github.com/nextstrain/auspice/pull/1261) for more.
+* Animation controls have moved and are now in the sidebar, underneath the date-slider.
+See [PR 1262](https://github.com/nextstrain/auspice/pull/1262) for more.
+* The footer has been updated to streamline the Nextstrain accreditation and now displays "Powered by Nextstrain".
+If you are serving your own version of auspice we ask for this accreditation to remain be maintained, in keeping with the spirit of scientific citations.
+Please also remember that customised version of auspice must make their source code available, as per Auspice's licence.
+See [PR 1260](https://github.com/nextstrain/auspice/pull/1260) for more.
+
+## version 2.21.0 - 2021/01/06
+
+### Improved Functionality
+
+* Tree rendering and zooming has been improved.
+  * A new **Zoom to Selected** button has been added which allows you to zoom the tree to the clade containing the currently selected tips ([PR 1257](https://github.com/nextstrain/auspice/pull/1257)).
+  * Branches ancestral to the common ancestor of the currently selected tips are now correctly rendered ([PR 1248](https://github.com/nextstrain/auspice/pull/1248)).
+* The **Download Data** functionality has been improved to export data reflecting the currently viewed subset of data.
+Additionally we export annotated Nexus trees which can be parsed by [FigTree](http://tree.bio.ed.ac.uk/software/figtree/).
+See [PR 1245](https://github.com/nextstrain/auspice/pull/1245) for more.
+* The **drag & drop metadata** functionality has been improved to facilitate easier filtering, custom locations and colours.
+See [PR 1244](https://github.com/nextstrain/auspice/pull/1244) or [these docs](https://docs.nextstrain.org/projects/auspice/en/latest/advanced-functionality/drag-drop-csv-tsv.html) for more.
+* **Tip labels** are now user-selectable via a drop-down in the sidebar.
+See [PR 1246](https://github.com/nextstrain/auspice/pull/1246) for more.
+* **Legend values** now dynamically update to reflect those in the current view.
+See [PR 1250](https://github.com/nextstrain/auspice/pull/1250) for more.
+
+
+#### Other Changes
+
+* Italian translation added. See [PR 1256](https://github.com/nextstrain/auspice/pull/1256).
+* Amino acid labels are only shown on branches leading to big clades.
+See [PR 1249](https://github.com/nextstrain/auspice/pull/1249) for more.
+* Colour scale generation has been refactored and a (rare) bug fixed where color-bys which defined a scale in the JSON could cause tips with no trait value set to have a colour rather than a shade of grey.
+See [PR 1237](https://github.com/nextstrain/auspice/pull/1237).
+* Warnings added to documentation pages which are imported into Nextstrain's (main) RTD project.
+See [PR 1234](https://github.com/nextstrain/auspice/pull/1234).
+* Disabled a smoke-test which was stochastically failing on GitHub Actions (but which worked locally).
+See [PR 1258](https://github.com/nextstrain/auspice/pull/1258) for more.
+
+
+
 ## version 2.20.1 - 2020/11/19
-
-
-* Small bugfixes and performance improvements relatingo to the features introduced in 2.20.0
+* Small bugfixes and performance improvements relating to to the features introduced in 2.20.0
 
 ## version 2.20.0 - 2020/11/18
 
