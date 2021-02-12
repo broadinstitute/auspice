@@ -1,7 +1,7 @@
 import React from "react";
 import styled from 'styled-components';
 
-const logoPNG = require("../../images/logo-light.svg");
+const logoPNG = require("../../images/broad-logo-square.svg");
 
 const AuspiceNavBarContainer = styled.div`
   display: flex;
@@ -17,10 +17,11 @@ const Title = styled.a`
   font-size: 20px;
   font-weight: 400;
   cursor: pointer;
-  letter-spacing: 1rem;
+  letter-spacing: 0.5rem;
 `;
 const LogoLink = styled.a`
   padding: 5px 5px;
+  margin-top:5px;
   width: 50px;
   cursor: pointer;
 `;
@@ -47,7 +48,7 @@ const renderTitle = (narrativeTitle, width) => {
   }
   return (
     <Title href="/">
-      {"auspice"}
+      {"SARS-CoV-2"}
     </Title>
   );
 };

@@ -5,7 +5,7 @@ import { Helmet } from "react-helmet";
 import { hasExtension, getExtension } from "../../util/extensions";
 
 const Head = ({metadata}) => {
-  let pageTitle = "auspice";
+  let pageTitle = "Broad SARS-CoV-2";
   if (hasExtension("browserTitle")) {
     pageTitle = getExtension("browserTitle");
   }
