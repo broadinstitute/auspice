@@ -69,15 +69,42 @@ export const getFullAuthorInfoFromNode = (node) =>
 
 export const getAccessionFromNode = (node) => {
   /* see comment at top of this file */
-  if (node.node_attrs && node.node_attrs.accession) {
-    return node.node_attrs.accession;
+  let accession, url;
+  if (node.node_attrs) {
+    if (isValueValid(node.node_attrs.accession)) {
+      accession = node.node_attrs.accession;
+    }
+    url = validateUrl(node.node_attrs.url);
   }
-  return undefined;
+  return {accession, url};
 };
 
 /* see comment at top of this file */
-export const getUrlFromNode = (node) =>
-  (node.node_attrs && node.node_attrs.url) ? node.node_attrs.url : undefined;
+export const getUrlFromNode = (node, trait) => {
+  if (!node.node_attrs || !node.node_attrs[trait]) return undefined;
+  return validateUrl(node.node_attrs[trait].url);
+};
+
+/**
+ * Check if a URL seems valid & return it.
+ * For historical reasons, we allow URLs to be defined as `http[s]_` and coerce these into `http[s]:`
+ * URls are interpreted by `new URL()` and thus may be returned with a trailing slash
+ * @param {String} url URL string to validate
+ * @returns {String|undefined} potentially modified URL string or `undefined` (if it doesn't seem valid)
+ */
+function validateUrl(url) {
+  if (url===undefined) return undefined; // urls are optional, so return early to avoid the console warning
+  try {
+    if (typeof url !== "string") throw new Error();
+    if (url.startsWith("http_")) url = url.replace("http_", "http:"); // eslint-disable-line no-param-reassign
+    if (url.startsWith("https_")) url = url.replace("https_", "https:"); // eslint-disable-line no-param-reassign
+    const urlObj = new URL(url);
+    return urlObj.href;
+  } catch (err) {
+    console.warn(`Dataset provided the invalid URL ${url}`);
+    return undefined;
+  }
+}
 
 /**
  * Traverses the tree and returns a set of genotype states such as
@@ -100,3 +127,47 @@ export function collectGenotypeStates(nodes) {
   });
   return observedStates;
 }
+
+/**
+ * Collect mutations from node `fromNode` to the root.
+ * Reversions (e.g. root -> A<pos>B -> B<pos>A -> fromNode) will not be reported
+ * Multiple mutations (e.g. root -> A<pos>B -> B<pos>C -> fromNode) will be represented as A<pos>C
+ * We may want to expand this function to take a second argument as the "stopping node"
+ * @param {TreeNode} fromNode
+ */
+export const collectMutations = (fromNode, include_nuc=false) => {
+  const mutations = {};
+  const walk = (n) => {
+    if (n.branch_attrs && n.branch_attrs.mutations && Object.keys(n.branch_attrs.mutations).length) {
+      Object.entries(n.branch_attrs.mutations).forEach(([gene, muts]) => {
+        if ((gene === "nuc" && include_nuc) || gene !== "nuc") {
+          if (!mutations[gene]) mutations[gene] = {};
+          muts.forEach((m) => {
+            const [from, pos, to] = [m.slice(0, 1), m.slice(1, -1), m.slice(-1)]; // note: `pos` is a string
+            if (mutations[gene][pos]) {
+              mutations[gene][pos][0] = from; // mutation already seen => update ancestral state.
+            } else {
+              mutations[gene][pos] = [from, to];
+            }
+          });
+        }
+      });
+    }
+    const nIdx = n.arrayIdx;
+    const parent = n.parent;
+    if (parent && parent.arrayIdx !== nIdx) {
+      walk(parent);
+    }
+  };
+  walk(fromNode);
+  // update structure to be returned
+  Object.keys(mutations).forEach((gene) => {
+    mutations[gene] = Object.entries(mutations[gene])
+      .map(([pos, [from, to]]) => {
+        if (from===to) return undefined; // reversion to ancestral (root) state
+        return `${from}${pos}${to}`;
+      })
+      .filter((value) => !!value);
+  });
+  return mutations;
+};

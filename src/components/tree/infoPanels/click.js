@@ -2,7 +2,8 @@ import React from "react";
 import { isValueValid } from "../../../util/globals";
 import { infoPanelStyles } from "../../../globalStyles";
 import { numericToCalendar } from "../../../util/dateHelpers";
-import { getTraitFromNode, getFullAuthorInfoFromNode, getVaccineFromNode, getAccessionFromNode, getUrlFromNode } from "../../../util/treeMiscHelpers";
+import { getTraitFromNode, getFullAuthorInfoFromNode, getVaccineFromNode,
+  getAccessionFromNode, getUrlFromNode, collectMutations } from "../../../util/treeMiscHelpers";
 
 export const styles = {
   container: {
@@ -41,15 +42,6 @@ const item = (key, value, href) => (
   </tr>
 );
 
-const formatURL = (url) => {
-  if (url !== undefined && url.startsWith("https_")) {
-    return url.replace("https_", "https:");
-  } else if (url !== undefined && url.startsWith("http_")) {
-    return url.replace("http_", "http:");
-  }
-  return url;
-};
-
 const Link = ({url, title, value}) => (
   <tr>
     <th style={infoPanelStyles.item}>{title}</th>
@@ -59,14 +51,46 @@ const Link = ({url, title, value}) => (
   </tr>
 );
 
-const AccessionAndUrl = ({node}) => {
-  const accession = getAccessionFromNode(node);
-  const url = getUrlFromNode(node);
-  const genbank_accession = getTraitFromNode(node, "genbank_accession");
+/**
+ * Render a 2-column table of gene -> mutations.
+ * Rows are sorted by gene name, alphabetically, with "nuc" last.
+ * Mutations are sorted by genomic position.
+ * todo: sort genes by position in genome
+ * todo: provide in-app links from mutations to color-bys? filters?
+ */
+const MutationTable = ({mutations}) => {
+  const geneSortFn = (a, b) => {
+    if (a[0]==="nuc") return 1;
+    if (b[0]==="nuc") return -1;
+    return a[0]<b[0] ? -1 : 1;
+  };
+  const mutSortFn = (a, b) => {
+    const [aa, bb] = [parseInt(a.slice(1, -1), 10), parseInt(b.slice(1, -1), 10)];
+    return aa<bb ? -1 : 1;
+  };
+  // we encode the table here (rather than via `item()`) to set component keys appropriately
+  return (
+    <tr key={"Mutations"}>
+      <th style={infoPanelStyles.item}>{"Mutations from root"}</th>
+      <td style={infoPanelStyles.item}>{
+        Object.entries(mutations)
+          .sort(geneSortFn)
+          .map(([gene, muts]) => (
+            <div style={{...infoPanelStyles.item, ...{fontWeight: 300}}}>
+              {gene}: {muts.sort(mutSortFn).join(", ")}
+            </div>
+          ))
+      }</td>
+    </tr>
+  );
+};
 
-  /* `gisaid_epi_isl` is a special value attached to nodes introduced during the 2019 nCoV outbreak.
-  If set, the display is different from the normal behavior */
+
+const AccessionAndUrl = ({node}) => {
+  /* If `gisaid_epi_isl` or `genbank_accession` exist as node attrs, these preempt normal use of `accession` and `url`.
+  These special values were introduced during the 2019 nCoV outbreak. */
   const gisaid_epi_isl = getTraitFromNode(node, "gisaid_epi_isl");
+  const genbank_accession = getTraitFromNode(node, "genbank_accession");
   if (isValueValid(gisaid_epi_isl)) {
     return (
       <>
@@ -78,22 +102,24 @@ const AccessionAndUrl = ({node}) => {
       </>
     );
   }
-
   if (isValueValid(genbank_accession)) {
     return (
       <Link title={"Genbank accession"} value={genbank_accession} url={"https://www.ncbi.nlm.nih.gov/nuccore/" + genbank_accession}/>
     );
-  } else if (isValueValid(accession) && isValueValid(url)) {
+  }
+
+  const {accession, url} = getAccessionFromNode(node);
+  if (accession && url) {
     return (
-      <Link url={formatURL(url)} value={accession} title={"Accession"}/>
+      <Link url={url} value={accession} title={"Accession"}/>
     );
-  } else if (isValueValid(accession)) {
+  } else if (accession) {
     return (
       item("Accession", accession)
     );
-  } else if (isValueValid(url)) {
+  } else if (url) {
     return (
-      <Link title={"Strain URL"} url={formatURL(url)} value={"click here"}/>
+      <Link title={"Strain URL"} url={url} value={"click here"}/>
     );
   }
   return null;
@@ -182,7 +208,7 @@ const SampleDate = ({node, t}) => {
 const getTraitsToDisplay = (node) => {
   // TODO -- this should be centralised somewhere
   if (!node.node_attrs) return [];
-  const ignore = ["author", "div", "num_date", "gisaid_epi_isl", "genbank_accession"];
+  const ignore = ["author", "div", "num_date", "gisaid_epi_isl", "genbank_accession", "accession", "url"];
   return Object.keys(node.node_attrs).filter((k) => !ignore.includes(k));
 };
 
@@ -194,10 +220,16 @@ const Trait = ({node, trait, colorings}) => {
       value = Number.parseFloat(value_tmp).toPrecision(3);
     }
   }
+  if (!isValueValid(value)) return null;
+
   const name = (colorings && colorings[trait] && colorings[trait].title) ?
     colorings[trait].title :
     trait;
-  return isValueValid(value) ? item(name, value) : null;
+  const url = getUrlFromNode(node, trait);
+  if (url) {
+    return <Link title={name} url={url} value={value}/>;
+  }
+  return item(name, value);
 };
 
 /**
@@ -212,6 +244,7 @@ const TipClickedPanel = ({tip, goAwayCallback, colorings, t}) => {
   const panelStyle = { ...infoPanelStyles.panel};
   panelStyle.maxHeight = "70%";
   const node = tip.n;
+  const mutationsToRoot = collectMutations(node);
   return (
     <div style={infoPanelStyles.modalContainer} onClick={() => goAwayCallback(tip)}>
       <div className={"panel"} style={panelStyle} onClick={(e) => stopProp(e)}>
@@ -225,6 +258,8 @@ const TipClickedPanel = ({tip, goAwayCallback, colorings, t}) => {
               <Trait node={node} trait={trait} colorings={colorings} key={trait}/>
             ))}
             <AccessionAndUrl node={node}/>
+            {item("", "")}
+            <MutationTable mutations={mutationsToRoot}/>
           </tbody>
         </table>
         <p style={infoPanelStyles.comment}>
