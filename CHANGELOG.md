@@ -2,6 +2,53 @@
 title: Changelog
 ---
 
+## version 2.25.1 - 2021/04/07
+
+
+* Bugfix for cases where certain interactions with scatterplot variables would cause auspice to crash.
+See [PR 1332](https://github.com/nextstrain/auspice/pull/1332) for more.
+
+
+## version 2.25.0 - 2021/03/31
+
+* Scatterplots are now available as a tree layout.
+These allow graphs to be created between any two continuous traits (colourings), similar to the "clock" layout but with user-definable variables
+Branches and regression lines can be toggled on/off, and nodes which do not define valid values for both variables will be hidden.
+Note that the regression line is calculated with a free intercept, which differs from the clock view where we force it to pass through the root.
+See [PR 1310](https://github.com/nextstrain/auspice/pull/1310) and [PR 1326](https://github.com/nextstrain/auspice/pull/1326) for more.
+* Datasets may now define "data provenance" which will be rendered in the byline.
+See [PR 1313](https://github.com/nextstrain/auspice/pull/1313) for more.
+* Names within the filtering UI now use the metadata-provided title, which is clearer.
+See [PR 1327](https://github.com/nextstrain/auspice/pull/1327) for more.
+* Frequency rounding is improved for small values.
+See [PR 1301](https://github.com/nextstrain/auspice/pull/1301) for more.
+* Node traits may define a URL which will result in the value being displayed as a link.
+See [PR 1308](https://github.com/nextstrain/auspice/pull/1308) for more.
+* A bug was fixed which caused some datasets to crash auspice when metadata files were dragged on.
+See [PR 1319](https://github.com/nextstrain/auspice/pull/1319) for more.
+
+## version 2.24.1 - 2021/03/19
+
+* [bugfix] Fixes a bug introduced in v2.24.0 where certain datasets wouldn't load
+
+## version 2.24.0 - 2021/03/17
+
+* Frequencies are no longer normalized when the data is lacking.
+See [PR 1278](https://github.com/nextstrain/auspice/pull/1278) for more.
+* Fixed a stack size bug, which mainly affected the TB dataset on certain browsers.
+See [PR 1293](https://github.com/nextstrain/auspice/pull/1293) for more.
+* Root-to-tip mutations are now displayed in the tip-clicked info box.
+See [PR 1280](https://github.com/nextstrain/auspice/pull/1280) for more.
+* Datasets may now define the default language.
+See [PR 1303](https://github.com/nextstrain/auspice/pull/1303) for more.
+* Polish language added.
+See [PR 1288](https://github.com/nextstrain/auspice/pull/1288) for more.
+* Tips in the tree should no longer be obscured behind the legend.
+See [PR 1302](https://github.com/nextstrain/auspice/pull/1302) for more.
+* Dates BCE are now correctly displayed in the phylogeny axis.
+See [PR 1297](https://github.com/nextstrain/auspice/pull/1297) for more.
+
+
 ## version 2.23.0 - 2021/01/28
 * [feature] Implement genotype filtering.
 The sidebar, typing-based filter UI now includes genotypes (for datasets which define mutations on branches).
