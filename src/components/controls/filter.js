@@ -21,6 +21,7 @@ const DEBOUNCE_TIME = 200;
 @connect((state) => {
   return {
     activeFilters: state.controls.filters,
+    colorings: state.metadata.colorings,
     totalStateCounts: state.tree.totalStateCounts,
     nodes: state.tree.nodes
   };
@@ -39,6 +40,9 @@ class FilterData extends React.Component {
       }
     };
   }
+  getFilterTitle(filterName) {
+    return this.props.colorings && this.props.colorings[filterName] && this.props.colorings[filterName].title || filterName;
+  }
   makeOptions = () => {
     /**
      * The <Select> component needs an array of options to display (and search across). We compute this
@@ -48,6 +52,7 @@ class FilterData extends React.Component {
     const options = [];
     Object.keys(this.props.activeFilters)
       .forEach((filterName) => {
+        const filterTitle = this.getFilterTitle(filterName);
         const filterValuesCurrentlyActive = this.props.activeFilters[filterName].filter((x) => x.active).map((x) => x.value);
         Array.from(this.props.totalStateCounts[filterName].keys())
           .filter((itemName) => isValueValid(itemName)) // remove invalid values present across the tree
@@ -55,17 +60,20 @@ class FilterData extends React.Component {
           .sort() // filters are sorted alphabetically - probably not necessary for a select component
           .forEach((itemName) => {
             options.push({
-              label: `${filterName} → ${itemName}`,
+              label: `${filterTitle} → ${itemName}`,
               value: [filterName, itemName]
             });
           });
       });
     if (genotypeSymbol in this.props.activeFilters) {
-      const sortedGenotypes = [...collectGenotypeStates(this.props.nodes)].sort();
-      options.push(...sortedGenotypes.map((o) => ({
-        label: `genotype ${o}`,
-        value: [genotypeSymbol, o]
-      })));
+      Array.from(collectGenotypeStates(this.props.nodes))
+        .sort()
+        .forEach((o) => {
+          options.push({
+            label: `genotype ${o}`,
+            value: [genotypeSymbol, o]
+          });
+        });
     }
     if (strainSymbol in this.props.activeFilters) {
       this.props.nodes
@@ -89,7 +97,7 @@ class FilterData extends React.Component {
       const n = this.props.activeFilters[filterName].filter((f) => f.active).length;
       return {
         filterName,
-        displayName: filterBadgeDisplayName(n, filterName),
+        displayName: filterBadgeDisplayName(n, this.getFilterTitle(filterName)),
         remove: () => {this.props.dispatch(applyFilter("set", filterName, []));}
       };
     });
@@ -99,6 +107,7 @@ class FilterData extends React.Component {
     // to `loadOptions` we don't slow things down by comparing queries to a large number of options
     const options = this.makeOptions();
     const loadOptions = debounce((input, callback) => callback(null, {options}), DEBOUNCE_TIME);
+    const filterOption = (option, filter) => filter.toLowerCase().split(" ").every((word) => option.label.toLowerCase().includes(word));
     const styles = this.getStyles();
     const inUseFilters = this.summariseFilters();
     /* When filter categories were dynamically created (via metadata drag&drop) the `options` here updated but `<Async>`
@@ -113,6 +122,7 @@ class FilterData extends React.Component {
           value={undefined}
           arrowRenderer={null}
           loadOptions={loadOptions}
+          filterOption={filterOption}
           ignoreAccents={false}
           clearable={false}
           searchable

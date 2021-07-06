@@ -168,7 +168,7 @@ export const strainTSV = (dispatch, filePrefix, nodes, colorings, nodeVisibiliti
   /* traverse the tree & store tip information. We cannot write this out as we go as we don't know
   exactly which header fields we want until the tree has been traversed. */
   const tipTraitValues = {};
-  const headerFields = ["Strain"];
+  const headerFields = ["strain"];
 
   for (const [i, node] of nodes.entries()) {
     if (node.hasChildren) continue; /* we only consider tips */
@@ -177,8 +177,22 @@ export const strainTSV = (dispatch, filePrefix, nodes, colorings, nodeVisibiliti
       continue;
     }
 
-    tipTraitValues[node.name] = {Strain: node.name};
+    tipTraitValues[node.name] = {strain: node.name};
     if (!node.node_attrs) continue; /* if this is not set then we don't have any node info! */
+
+    /* handle `num_date` specially */
+    /* do this first so that "date" immediately follows "strain" in downloaded TSV */
+    const numDate = getTraitFromNode(node, "num_date");
+    if (numDate) {
+      const traitName = "date"; // matches use in augur metadata.tsv
+      if (!headerFields.includes(traitName)) headerFields.push(traitName);
+      const numDateConfidence = getTraitFromNode(node, "num_date", {confidence: true});
+      if (numDateConfidence && numDateConfidence[0] !== numDateConfidence[1]) {
+        tipTraitValues[node.name][traitName] = `${numericToCalendar(numDate)} (${numericToCalendar(numDateConfidence[0])} - ${numericToCalendar(numDateConfidence[1])})`;
+      } else {
+        tipTraitValues[node.name][traitName] = numericToCalendar(numDate);
+      }
+    }
 
     /* collect values (as writable strings) of the same "traits" as can be viewed by the modal displayed
     when clicking on tips. Note that "num_date", "author" and "vaccine" are considered seperately below */
@@ -196,23 +210,10 @@ export const strainTSV = (dispatch, filePrefix, nodes, colorings, nodeVisibiliti
       }
     }
 
-    /* handle `num_date` specially */
-    const numDate = getTraitFromNode(node, "num_date");
-    if (numDate) {
-      const traitName = "Collection Data"; // can cusomise as desired. Will appear in header.
-      if (!headerFields.includes(traitName)) headerFields.push(traitName);
-      const numDateConfidence = getTraitFromNode(node, "num_date", {confidence: true});
-      if (numDateConfidence && numDateConfidence[0] !== numDateConfidence[1]) {
-        tipTraitValues[node.name][traitName] = `${numericToCalendar(numDate)} (${numericToCalendar(numDateConfidence[0])} - ${numericToCalendar(numDateConfidence[1])})`;
-      } else {
-        tipTraitValues[node.name][traitName] = numericToCalendar(numDate);
-      }
-    }
-
     /* handle `author` specially */
     const fullAuthorInfo = getFullAuthorInfoFromNode(node);
     if (fullAuthorInfo) {
-      const traitName = "Author";
+      const traitName = "author";
       if (!headerFields.includes(traitName)) headerFields.push(traitName);
       tipTraitValues[node.name][traitName] = fullAuthorInfo.value;
       if (isPaperURLValid(fullAuthorInfo)) {
@@ -223,26 +224,22 @@ export const strainTSV = (dispatch, filePrefix, nodes, colorings, nodeVisibiliti
     /* handle `vaccine` specially */
     const vaccine = getVaccineFromNode(node);
     if (vaccine && vaccine.selection_date) {
-      const traitName = "Vaccine Selection Date";
+      const traitName = "vaccine_selection_date";
       if (!headerFields.includes(traitName)) headerFields.push(traitName);
       tipTraitValues[node.name][traitName] = vaccine.selection_date;
     }
 
     /* handle `accession` specially */
     const accession = getAccessionFromNode(node);
-    if (accession) {
-      const traitName = "Accession";
+    if ("accession" in accession) {
+      const traitName = "accession";
       if (!headerFields.includes(traitName)) headerFields.push(traitName);
-      tipTraitValues[node.name][traitName] = accession;
+      tipTraitValues[node.name][traitName] = accession.accession;
     }
   }
 
   /* turn the information into a string to be written */
-  // for the header, attempt to use titles defined via metadata->colorings where possible
-  const header = headerFields.map((n) => {
-    return (colorings && colorings[n] && colorings[n].title) ? colorings[n].title : n;
-  });
-  const linesToWrite = [header.join("\t")];
+  const linesToWrite = [headerFields.join("\t")];
   for (const data of Object.values(tipTraitValues)) {
     const thisLine = [];
     for (const trait of headerFields) {
@@ -255,6 +252,73 @@ export const strainTSV = (dispatch, filePrefix, nodes, colorings, nodeVisibiliti
   const filename = `${filePrefix}_metadata.tsv`;
   write(filename, MIME.tsv, linesToWrite.join("\n"));
   dispatch(infoNotification({message: `Metadata exported to ${filename}`}));
+};
+
+/**
+ * Create & write a TSV file where each row is a strain in the tree,
+ * but only include the following fields:
+ * - strain
+ * - gisaid_epi_isl
+ * - genbank_accession
+ * - originating_lab
+ * - submitting_lab
+ * - author
+ * Only visible nodes (tips) will be included in the file.
+ */
+export const acknowledgmentsTSV = (dispatch, filePrefix, nodes, colorings, nodeVisibilities) => {
+
+  /* traverse the tree & store tip information. We cannot write this out as we go as we don't know
+  exactly which header fields we want until the tree has been traversed. */
+  const tipTraitValues = {};
+  const headerFields = ["strain"];
+
+  for (const [i, node] of nodes.entries()) {
+    if (node.hasChildren) continue; /* we only consider tips */
+
+    if (nodeVisibilities[i] !== NODE_VISIBLE || !node.inView) {
+      continue;
+    }
+
+    tipTraitValues[node.name] = {strain: node.name};
+    if (!node.node_attrs) continue; /* if this is not set then we don't have any node info! */
+
+    /* collect values of relevant traits */
+    const traitsToExport = ["gisaid_epi_isl", "genbank_accession", "originating_lab", "submitting_lab"];
+    for (const traitName of traitsToExport) {
+      const traitValue = getTraitFromNode(node, traitName);
+      if (traitValue) {
+        if (!headerFields.includes(traitName)) headerFields.push(traitName);
+        tipTraitValues[node.name][traitName] = traitValue;
+      }
+    }
+
+    /* handle `author` specially */
+    const fullAuthorInfo = getFullAuthorInfoFromNode(node);
+    if (fullAuthorInfo) {
+      const traitName = "author";
+      if (!headerFields.includes(traitName)) headerFields.push(traitName);
+      tipTraitValues[node.name][traitName] = fullAuthorInfo.value;
+      if (isPaperURLValid(fullAuthorInfo)) {
+        tipTraitValues[node.name][traitName] += ` (${fullAuthorInfo.paper_url})`;
+      }
+    }
+
+  }
+
+  /* turn the information into a string to be written */
+  const linesToWrite = [headerFields.join("\t")];
+  for (const data of Object.values(tipTraitValues)) {
+    const thisLine = [];
+    for (const trait of headerFields) {
+      thisLine.push(data[trait] || "");
+    }
+    linesToWrite.push(thisLine.join("\t"));
+  }
+
+  /* write out information we've collected */
+  const filename = `${filePrefix}_acknowledgements.tsv`;
+  write(filename, MIME.tsv, linesToWrite.join("\n"));
+  dispatch(infoNotification({message: `Acknowledgments exported to ${filename}`}));
 };
 
 export const exportTree = ({dispatch, filePrefix, tree, isNewick, temporal, colorings, colorBy}) => {
@@ -517,4 +581,3 @@ export const entropyTSV = (dispatch, filePrefix, entropy, mutType) => {
   write(filename, MIME.tsv, lines.join("\n"));
   dispatch(infoNotification({message: `Diversity data exported to ${filename}`}));
 };
-

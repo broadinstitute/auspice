@@ -7,7 +7,7 @@ export const TreeOptionsInfo = (
     The exact options available depend on the dataset and specific analysis performed.
     <br/>
     If <em>Branch Length</em> is available, you can choose to display the tree branches in terms of (nucleotide) divergence or (inferred) time.
-    It is often helpful to toggle on <em>confidence intervals</em> to guage the uncertainty in the reconstruction of internal node dates.
+    It is often helpful to toggle on <em>confidence intervals</em> to gauge the uncertainty in the reconstruction of internal node dates.
   </>
 );
 
@@ -38,5 +38,6 @@ export const PanelOptionsInfo = (
 export const FrequencyInfo = (
   <>
     <em>Normalize frequencies</em> controls whether the vertical axis represents the entire dataset or only the samples currently visible (e.g. due to filtering).
+    This option is not available when data is limited to prevent numerical issues.
   </>
 );

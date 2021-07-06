@@ -1,4 +1,3 @@
-import scaleLinear from "d3-scale/src/linear";
 import { createDefaultParams } from "./defaultParams";
 import { createChildrenAndParentsReturnNumTips, setYValues } from "./helpers";
 import { change, modifySVG, modifySVGInStages } from "./change";
@@ -38,8 +37,6 @@ const PhyloTree = function PhyloTree(reduxNodes, id, idxOfInViewRootNode) {
   });
   this.numberOfTips = createChildrenAndParentsReturnNumTips(this.nodes);
   setYValues(this.nodes);
-  this.xScale = scaleLinear();
-  this.yScale = scaleLinear();
   this.zoomNode = this.nodes[idxOfInViewRootNode];
   this.strainToNode = {};
   this.nodes.forEach((phylonode) => {this.strainToNode[phylonode.n.name] = phylonode;});
@@ -69,7 +66,7 @@ PhyloTree.prototype.updateColorBy = renderers.updateColorBy;
 PhyloTree.prototype.setDistance = layouts.setDistance;
 PhyloTree.prototype.setLayout = layouts.setLayout;
 PhyloTree.prototype.rectangularLayout = layouts.rectangularLayout;
-PhyloTree.prototype.timeVsRootToTip = layouts.timeVsRootToTip;
+PhyloTree.prototype.scatterplotLayout = layouts.scatterplotLayout;
 PhyloTree.prototype.unrootedLayout = layouts.unrootedLayout;
 PhyloTree.prototype.radialLayout = layouts.radialLayout;
 PhyloTree.prototype.setScales = layouts.setScales;
