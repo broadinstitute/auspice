@@ -9,7 +9,7 @@ import Flex from "./flex";
 import { version } from "../../version";
 import { publications } from "../download/downloadModal";
 
-const logoPNG = require("../../images/favicon.png");
+const logoPNG = require("../../images/nextstrain-logo-small.png");
 
 const dot = (
   <span style={{marginLeft: 10, marginRight: 10}}>
